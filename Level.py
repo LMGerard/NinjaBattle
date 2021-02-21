@@ -1,5 +1,5 @@
 import arcade as ac
-from Player import Player, EnemyPlayer
+from Player import Player
 import json
 
 
@@ -13,26 +13,29 @@ class Level(ac.View):
         self.grounds_list = None
 
         self.player = Player(self.window, self)
-        self.enemy_player = EnemyPlayer()
+        self.enemy_player = Player(self.window, self)
+        self.enemies = ac.SpriteList()
+        self.enemies.append(self.enemy_player)
 
         self.load()
 
     def on_draw(self):
-        """if self.window.offset_change:
-            self.window.set_viewport(int(self.window.x_offset),
-                                     int(self.window.width + self.window.x_offset),
-                                     int(self.window.y_offset),
-                                     int(self.window.height + self.window.y_offset))
-            self.window.offset_change = False"""
+        self.window.y_offset = int(self.window.y_offset)
+        self.window.x_offset = int(self.window.x_offset)
+
+        self.window.set_viewport(self.window.x_offset,
+                                 self.window.width + self.window.x_offset,
+                                 self.window.y_offset,
+                                 self.window.height + self.window.y_offset)
         ac.start_render()
         self.grounds_list.draw()
         self.player.draw_all()
         self.enemy_player.draw_all()
 
     def on_update(self, delta_time):
-        # self.networking()
+        self.networking()
         self.player.update()
-        self.enemy_player.update()
+        self.enemies.update()
 
     def networking(self):
         try:
@@ -68,6 +71,10 @@ class Level(ac.View):
         pass
 
     def load(self):
+        """
+        Load the level from tmx file to the game
+        :return:
+        """
         tile_map = ac.tilemap.read_tmx(f"assets/level_{self.level_number}.tmx")
 
         self.grounds_list = ac.tilemap.process_layer(tile_map, 'ground', 1)

@@ -28,12 +28,15 @@ class Player:
                     if p_id not in self.projectiles:
                         data["projectiles"].append((s_pos, g_pos, speed))
                 self.projectiles = p_ids
+            elif i == "health":
+                data["health"] = j
         return data
 
 
 class Server:
     def __init__(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1)
         self.users = {}
         self.games = {}
         self.queue = []

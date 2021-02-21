@@ -3,10 +3,7 @@ import socket
 from random import randrange
 from Menu import Menu
 from Level import Level
-
-SCREEN_WIDTH = 600
-SCREEN_HEIGHT = 450
-SCREEN_TITLE = "Ninja Battle"
+from constants import SCREEN_TITLE, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 class NinjaBattle(ac.Window):
@@ -16,20 +13,27 @@ class NinjaBattle(ac.Window):
 
         # connect to server
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1)
+
         self.socket.connect(("127.0.0.1", 4444))
         self.socket.setblocking(False)
 
         self.x_offset = 0
         self.y_offset = 0
 
-        self.show_game()
-        #self.show_menu()
+        # self.show_game()
+        self.show_menu()
 
     def show_menu(self):
         self.show_view(Menu(self))
 
     def show_game(self):
         self.show_view(Level(self, 1))
+
+
+def test():
+    while True:
+        print("yo")
 
 
 def main():
