@@ -5,14 +5,16 @@ from utils.Item import ShurikenItem, FireWorkItem
 
 
 class Player(ac.Sprite):
-    def __init__(self, window: ac.Window, level):
+    def __init__(self, window: ac.Window, level, user_id):
         super(Player, self).__init__(filename="assets/player_0.png", scale=0.05)
         self.window = window
         self.level = level
+        self.user_id = user_id
         self.physics_engine = None
         self.ui_manager = None
 
-        self.health_bar = HealthBar(self, max_health=100)
+        self.name = self.window.user_id  # to change later
+        self.health_bar = HealthBar(self, max_health=100, health=0)
         self.score = 0
         self.speed = 4
         self.jump_force = 18
@@ -23,10 +25,8 @@ class Player(ac.Sprite):
     def setup(self):
         # load textures
         self.textures.append(ac.load_texture("assets/player_0.png", flipped_horizontally=True))
-        # set initial position
-        self.set_position(300, 300)
 
-        if self is not self.level.player:
+        if self.user_id != self.window.user_id:
             return
         self.items.append(ShurikenItem(self.window))
         self.items.append(FireWorkItem(self.window))
@@ -39,7 +39,7 @@ class Player(ac.Sprite):
         if self is not self.level.player:
             for project in self.projectiles:
                 if ac.check_for_collision(project, self.level.player):
-                    self.level.player.health_bar.health -= 10
+                    self.level.player.health_bar.health -= project.damage
                     self.projectiles.remove(project)
                 elif ac.check_for_collision_with_list(project, self.level.grounds_list):
                     self.projectiles.remove(project)
@@ -137,17 +137,21 @@ class Player(ac.Sprite):
         Update the player attributes with new ones, network function
         :param data:dict
         """
-        self.health_bar.health = data["health"]
-        self.position = data["position"]
-        if self.cur_texture_index != data["texture"]:
+        keys = data.keys()
+        if "health" in keys:
+            self.health_bar.health = data["health"]
+        if "position" in keys:
+            self.position = data["position"]
+        if "texture" in keys and self.cur_texture_index != data["texture"]:
             self.cur_texture_index = data["texture"]
             self.set_texture(self.cur_texture_index)
-        for p_type, p_pos in data["projectiles"]:
-            if p_type == "shuriken":
-                projectile = ShurikenItem.force_launch(self, p_pos)
-            elif p_type == "firework":
-                projectile = FireWorkItem.force_launch(self, p_pos)
-            self.projectiles.append(projectile)
+        if "projectiles" in keys:
+            for p_type, p_pos in data["projectiles"]:
+                if p_type == "shuriken":
+                    projectile = ShurikenItem.force_launch(self, p_pos)
+                elif p_type == "firework":
+                    projectile = FireWorkItem.force_launch(self, p_pos)
+                self.projectiles.append(projectile)
 
     def objectify(self) -> dict:
         """
@@ -163,15 +167,15 @@ class Player(ac.Sprite):
 
 
 class HealthBar:
-    def __init__(self, player: Player, max_health):
+    def __init__(self, player: Player, max_health: int, health: int):
         self.player = player
 
         self.max_health = max_health
-        self.health = max_health
+        self.health = health
 
     def draw(self):
         if self.player is self.player.level.player:
-            width, height = self.player.window.width / 4, TOOLBAR_OBJECT_SIZE
+            width, height = self.player.window.width / 4, TOOLBAR_OBJECT_SIZE * 2 / 3
             x, y = self.player.window.x_offset + 10 + width / 2, self.player.window.y_offset + 10 + height / 2
         else:
             width, height = self.player.width, self.player.height // 5
