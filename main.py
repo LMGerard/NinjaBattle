@@ -9,6 +9,7 @@ from constants import SCREEN_TITLE, SCREEN_WIDTH, SCREEN_HEIGHT
 class NinjaBattle(ac.Window):
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
+
         self.user_id = randrange(100000000)
 
         # connect to server
@@ -21,19 +22,20 @@ class NinjaBattle(ac.Window):
         self.x_offset = 0
         self.y_offset = 0
 
-        # self.show_game()
+        #self.show_game()
         self.show_menu()
 
     def show_menu(self):
         self.show_view(Menu(self))
 
     def show_game(self):
-        self.show_view(Level(self, 1))
+        level = Level(self, 1)
+        level.setup()
+        self.show_view(level)
 
-
-def test():
-    while True:
-        print("yo")
+    def on_deactivate(self):
+        if isinstance(self.current_view, Level):
+            self.current_view.on_window_deactivate()
 
 
 def main():

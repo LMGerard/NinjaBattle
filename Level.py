@@ -1,4 +1,6 @@
 import arcade as ac
+import arcade.gui as gui
+
 from Player import Player
 import json
 
@@ -6,6 +8,7 @@ import json
 class Level(ac.View):
     def __init__(self, window: ac.Window, number: int):
         super().__init__(window)
+        self.ui_manager = gui.UIManager(self.window)
 
         self.level_number = number
         self.gravity = 1
@@ -13,20 +16,13 @@ class Level(ac.View):
         self.grounds_list = None
 
         self.player = Player(self.window, self)
-        self.enemy_player = Player(self.window, self)
+        self.player.setup()
         self.enemies = ac.SpriteList()
+
+        self.enemy_player = Player(self.window, self)
         self.enemies.append(self.enemy_player)
 
-        self.load()
-
     def on_draw(self):
-        self.window.y_offset = int(self.window.y_offset)
-        self.window.x_offset = int(self.window.x_offset)
-
-        self.window.set_viewport(self.window.x_offset,
-                                 self.window.width + self.window.x_offset,
-                                 self.window.y_offset,
-                                 self.window.height + self.window.y_offset)
         ac.start_render()
         self.grounds_list.draw()
         self.player.draw_all()
@@ -70,7 +66,16 @@ class Level(ac.View):
         """
         pass
 
-    def load(self):
+    def on_window_deactivate(self):
+        """
+        Function called by main.py when the window is deactivated
+        """
+        self.player.change_x = 0
+
+    def setup(self):
+        self.load_level_file()
+
+    def load_level_file(self):
         """
         Load the level from tmx file to the game
         :return:
