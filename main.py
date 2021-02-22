@@ -22,15 +22,15 @@ class NinjaBattle(ac.Window):
         self.x_offset = 0
         self.y_offset = 0
 
-        self.show_game()
-        #self.show_menu()
+        # self.show_game()
+        self.show_menu()
 
     def show_menu(self):
         self.show_view(Menu(self))
 
-    def show_game(self):
+    def show_game(self, players_ids):
         level = Level(self, 1)
-        level.setup()
+        level.setup(players_ids)
         self.show_view(level)
 
     def on_deactivate(self):
