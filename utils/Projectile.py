@@ -47,6 +47,7 @@ class Shuriken(Projectile, ac.Sprite):
     scale = 0.035
     speed = 10
     type = "shuriken"
+    damage = 10
 
     def __init__(self, player: ac.Sprite, goal_pos: tuple):
         super().__init__(self.image_path, self.scale, player.position, goal_pos, self.speed)
@@ -58,6 +59,7 @@ class FireWork(Projectile, ac.Sprite):
     scale = 0.11
     speed = 3
     type = "firework"
+    damage = 50
 
     def __init__(self, player: ac.Sprite, goal_pos: tuple):
         super().__init__(self.image_path, self.scale, player.position, goal_pos, self.speed)
