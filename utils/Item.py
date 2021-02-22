@@ -55,7 +55,7 @@ class ShurikenItem(Item):
 
 class FireWorkItem(Item):
     item = FireWork
-    countdown = 0.5
+    countdown = 3
 
     def __init__(self, window: ac.Window):
         super().__init__(window, self.item, self.countdown, 0.15)
