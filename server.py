@@ -23,10 +23,10 @@ class Player:
             elif i == "projectiles":
                 p_ids = []
                 data["projectiles"] = []
-                for p_id, g_pos in j:
+                for p_id, p_type, p_pos in j:
                     p_ids.append(p_id)
                     if p_id not in self.projectiles:
-                        data["projectiles"].append(g_pos)
+                        data["projectiles"].append((p_type, p_pos))
                 self.projectiles = p_ids
             elif i == "health":
                 data["health"] = j
@@ -58,6 +58,7 @@ class Server:
                     for user_id in users:
                         self.users[user_id].game_id = game
                         self.socket.sendto(json.dumps({'msg': 'start'}).encode(), self.users[user_id].address)
+
             elif message["msg"] == "game_data":
                 user_id = message["user_id"]
                 data = self.users[user_id].update(message)

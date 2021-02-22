@@ -1,7 +1,7 @@
 import arcade as ac
-import arcade.gui as gui
-from constants import BOTTOM_VIEWPORT_MARGIN, LEFT_VIEWPORT_MARGIN, RIGHT_VIEWPORT_MARGIN, TOP_VIEWPORT_MARGIN
-from utils.Item import ShurikenItem
+from utils.constants import BOTTOM_VIEWPORT_MARGIN, LEFT_VIEWPORT_MARGIN, RIGHT_VIEWPORT_MARGIN, TOP_VIEWPORT_MARGIN, \
+    TOOLBAR_OBJECT_SIZE
+from utils.Item import ShurikenItem, FireWorkItem
 
 
 class Player(ac.Sprite):
@@ -13,6 +13,7 @@ class Player(ac.Sprite):
         self.ui_manager = None
 
         self.health_bar = HealthBar(self, max_health=100)
+        self.score = 0
         self.speed = 4
         self.jump_force = 18
 
@@ -21,14 +22,14 @@ class Player(ac.Sprite):
 
     def setup(self):
         # load textures
-        left_texture = ac.load_texture("assets/player_0.png", flipped_horizontally=True)
-        self.textures.append(left_texture)
+        self.textures.append(ac.load_texture("assets/player_0.png", flipped_horizontally=True))
         # set initial position
         self.set_position(300, 300)
 
         if self is not self.level.player:
             return
         self.items.append(ShurikenItem(self.window))
+        self.items.append(FireWorkItem(self.window))
 
     def update(self):
         self.projectiles.update()
@@ -43,15 +44,15 @@ class Player(ac.Sprite):
                 elif ac.check_for_collision_with_list(project, self.level.grounds_list):
                     self.projectiles.remove(project)
                 else:
-                    for enemy in self.level.enemies:
-                        if enemy is not self and ac.check_for_collision(project, enemy):
+                    for player in self.level.players:
+                        if player is not self and ac.check_for_collision(project, player):
                             self.projectiles.remove(project)
                             break
         else:
             self.physics_engine.update()
 
             for project in self.projectiles:
-                if ac.check_for_collision_with_list(project, self.level.enemies):
+                if any([player is not self for player in project.collides_with_list(self.level.players)]):
                     self.projectiles.remove(project)
                 elif ac.check_for_collision_with_list(project, self.level.grounds_list):
                     self.projectiles.remove(project)
@@ -90,8 +91,8 @@ class Player(ac.Sprite):
 
     def draw_all(self):
         self.projectiles.draw()
-        for item in self.items:
-            item.draw()
+        for index, item in enumerate(self.items):
+            item.draw(index)
         self.health_bar.draw()
         self.draw()
 
@@ -115,6 +116,10 @@ class Player(ac.Sprite):
 
     def mouse_press(self, x, y, button):
         if button == ac.MOUSE_BUTTON_LEFT:
+            item = self.items[1].launch(self, (x, y))
+            if item is not None:
+                self.projectiles.append(item)
+        elif button == ac.MOUSE_BUTTON_RIGHT:
             item = self.items[0].launch(self, (x, y))
             if item is not None:
                 self.projectiles.append(item)
@@ -137,8 +142,12 @@ class Player(ac.Sprite):
         if self.cur_texture_index != data["texture"]:
             self.cur_texture_index = data["texture"]
             self.set_texture(self.cur_texture_index)
-        for g_pos in data["projectiles"]:
-            self.projectiles.append(ShurikenItem.force_launch(self, g_pos))
+        for p_type, p_pos in data["projectiles"]:
+            if p_type == "shuriken":
+                projectile = ShurikenItem.force_launch(self, p_pos)
+            elif p_type == "firework":
+                projectile = FireWorkItem.force_launch(self, p_pos)
+            self.projectiles.append(projectile)
 
     def objectify(self) -> dict:
         """
@@ -150,21 +159,24 @@ class Player(ac.Sprite):
                 "position": self.position,
                 "health": self.health_bar.health,
                 "texture": self.cur_texture_index,
-                "projectiles": [(project.id,
-                                 project.goal_pos) for project in self.projectiles]}
+                "projectiles": [(project.id, project.type, project.goal_pos) for project in self.projectiles]}
 
 
 class HealthBar:
-    def __init__(self, player: ac.Sprite, max_health):
+    def __init__(self, player: Player, max_health):
         self.player = player
 
         self.max_health = max_health
         self.health = max_health
 
     def draw(self):
-        width, height = self.player.width, self.player.height // 5
-        x, y = self.player.center_x, self.player.top + height * 2
-        # red rectangle
+        if self.player is self.player.level.player:
+            width, height = self.player.window.width / 4, TOOLBAR_OBJECT_SIZE
+            x, y = self.player.window.x_offset + 10 + width / 2, self.player.window.y_offset + 10 + height / 2
+        else:
+            width, height = self.player.width, self.player.height // 5
+            x, y = self.player.center_x, self.player.top + height * 2
+            # red rectangle
         ac.draw_rectangle_filled(x, y, width, height, (255, 0, 0))
         new_width = self.health * width / self.max_health
         # green rectangle
