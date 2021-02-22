@@ -67,8 +67,8 @@ class PlayButton(gui.UIFlatButton):
 
 class PlayerSelector(gui.UIImageButton):
     def __init__(self, view: Menu):
-        img = view.open_image("assets/menu/arrow.png", 50, rotate=90)
-        img_02 = view.open_image("assets/menu/arrow_pressed.png", 50, rotate=90)
+        img = view.open_image("../assets/menu/arrow.png", 50, rotate=90)
+        img_02 = view.open_image("../assets/menu/arrow_pressed.png", 50, rotate=90)
         super().__init__(normal_texture=ac.Texture("normal", img),
                          press_texture=ac.Texture("pressed", img_02),
                          center_x=view.window.width // 2,
@@ -77,10 +77,10 @@ class PlayerSelector(gui.UIImageButton):
 
 class LeftArrow(gui.UIImageButton):
     def __init__(self, view: Menu):
-        normal = ac.texture.load_texture("assets/menu/arrow.png",
+        normal = ac.texture.load_texture("../assets/menu/arrow.png",
                                          flipped_diagonally=True,
                                          flipped_horizontally=True)
-        press = ac.texture.load_texture("assets/menu/arrow_pressed.png",
+        press = ac.texture.load_texture("../assets/menu/arrow_pressed.png",
                                         flipped_diagonally=True,
                                         flipped_horizontally=True)
         super().__init__(normal_texture=normal,
@@ -92,8 +92,8 @@ class LeftArrow(gui.UIImageButton):
 
 class RightArrow(gui.UIImageButton):
     def __init__(self, view: Menu):
-        normal = ac.texture.load_texture("assets/menu/arrow.png")
-        press = ac.texture.load_texture("assets/menu/arrow_pressed.png",
+        normal = ac.texture.load_texture("../assets/menu/arrow.png")
+        press = ac.texture.load_texture("../assets/menu/arrow_pressed.png",
                                         flipped_diagonally=True,
                                         flipped_horizontally=True,
                                         width=428, height=428)
