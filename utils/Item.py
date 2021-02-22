@@ -1,11 +1,11 @@
 import arcade as ac
-from constants import BOTTOM_VIEWPORT_MARGIN, RIGHT_VIEWPORT_MARGIN
 from time import time
-from utils.Projectile import Shuriken
+from utils.Projectile import Shuriken, FireWork
+from utils.constants import TOOLBAR_OBJECT_SIZE
 
 
 class Item:
-    def __init__(self, window: ac.Window, projectile, countdown: float):
+    def __init__(self, window: ac.Window, projectile, countdown: float, scale: float):
         super().__init__()
         self.window = window
         self.item = projectile
@@ -15,14 +15,15 @@ class Item:
         self.time = time()
 
         self.image = ac.load_texture(projectile.image_path)
+        self.scale = scale
 
-    def draw(self):
-        size = 50
+    def draw(self, index: int):
+        size = TOOLBAR_OBJECT_SIZE
         y = self.window.y_offset + size / 2 + 10
-        x = self.window.x_offset + self.window.width - size / 2 - 10
+        x = self.window.x_offset + self.window.width - size * index - 10 * (index + 1) - size / 2
 
         ac.draw_rectangle_filled(x, y, size, size, (255, 255, 255))
-        self.image.draw_sized(x, y, size, size)
+        self.image.draw_scaled(x, y, self.scale)
         ac.draw_rectangle_outline(x, y, size, size, (0, 0, 0))
 
         if not self.ready_to_launch:
@@ -46,6 +47,15 @@ class Item:
 
 class ShurikenItem(Item):
     item = Shuriken
+    countdown = 0.5
 
     def __init__(self, window: ac.Window):
-        super().__init__(window, self.item, 1)
+        super().__init__(window, self.item, self.countdown, 0.1)
+
+
+class FireWorkItem(Item):
+    item = FireWork
+    countdown = 0.5
+
+    def __init__(self, window: ac.Window):
+        super().__init__(window, self.item, self.countdown, 0.15)
