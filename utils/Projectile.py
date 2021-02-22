@@ -5,10 +5,9 @@ import math
 class Projectile(ac.Sprite):
     max_id = 0
 
-    def __init__(self, filename: str, scale: float, pos: tuple, goal_pos: tuple, speed: int, fake=False):
-        if not fake:
-            self.id = Projectile.max_id
-            Projectile.max_id += 1
+    def __init__(self, filename: str, scale: float, pos: tuple, goal_pos: tuple, speed: int):
+        self.id = Projectile.max_id
+        Projectile.max_id += 1
 
         super().__init__(filename=filename, scale=scale)
         self.start_pos = self.center_x, self.center_y = pos
@@ -29,6 +28,7 @@ class Projectile(ac.Sprite):
 class Shuriken(Projectile, ac.Sprite):
     image_path = "./assets/shuriken.png"
     scale = 0.035
+    speed = 10
 
-    def __init__(self, pos: tuple, goal_pos: tuple, speed: int, fake=False):
-        super().__init__(self.image_path, self.scale, pos, goal_pos, speed, fake=fake)
+    def __init__(self, player: ac.Sprite, goal_pos: tuple):
+        super().__init__(self.image_path, self.scale, player.position, goal_pos, self.speed)
