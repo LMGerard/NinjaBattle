@@ -4,15 +4,17 @@ from random import randrange
 
 
 class Player:
-    def __init__(self, address, position, projectiles: list):
+    def __init__(self, user_id, address, position, projectiles: list):
+        self.user_id = user_id
         self.game_id = None
         self.address = address
         self.position = position
         self.projectiles = projectiles
         self.texture = 0
+        self.score = 0
 
     def update(self, message) -> dict:
-        data = {"msg": "game_data"}
+        data = {"msg": "game_data", "user_id": self.user_id}
         for i, j in message.items():
             if i == "position":
                 self.position = j
@@ -49,24 +51,39 @@ class Server:
             message = json.loads(message)
             if message["msg"] == "play":
                 self.queue.append(message["user_id"])
-                self.users[message["user_id"]] = Player(address, (100, 100), [])
+                self.users[message["user_id"]] = Player(message["user_id"], address, (100, 100), [])
 
                 if len(self.queue) == 2:
-                    game = randrange(10000000)
-                    users = self.queue.pop(0), self.queue.pop(0)
-                    self.games[game] = users
-                    for user_id in users:
-                        self.users[user_id].game_id = game
-                        self.socket.sendto(json.dumps({'msg': 'start'}).encode(), self.users[user_id].address)
+                    self.start_game()
+                    self.start_new_round(self.users[message["user_id"]].game_id)
 
             elif message["msg"] == "game_data":
-                user_id = message["user_id"]
-                data = self.users[user_id].update(message)
-                users = list(
-                    filter(lambda x: x != user_id, self.games[self.users[user_id].game_id]))
+                user = self.users[message["user_id"]]
+                data = user.update(message)
+                if data["health"] <= 0:
+                    self.start_new_round(user.game_id)
+                else:
+                    users = list(
+                        filter(lambda x: x != user.user_id, self.games[user.game_id]))
 
-                for user in users:
-                    self.socket.sendto(json.dumps(data).encode(), self.users[user].address)
+                    for user in users:
+                        self.socket.sendto(json.dumps(data).encode(), self.users[user].address)
+
+    def start_game(self):
+        game = randrange(10000000)
+        users = self.queue.pop(0), self.queue.pop(0)
+        self.games[game] = users
+        data = {"msg": "start", "players": users}
+        for user_id in users:
+            self.users[user_id].game_id = game
+            self.socket.sendto(json.dumps(data).encode(), self.users[user_id].address)
+
+    def start_new_round(self, game_id: int):
+        coords = [(400, 100), (700, 100)]
+        data = {"msg": "new_round", "health": 100, "texture": 0}
+        for user in self.games[game_id]:
+            data["position"] = coords.pop()
+            self.socket.sendto(json.dumps(data).encode(), self.users[user].address)
 
 
 if __name__ == '__main__':
