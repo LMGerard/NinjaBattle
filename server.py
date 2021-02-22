@@ -23,10 +23,10 @@ class Player:
             elif i == "projectiles":
                 p_ids = []
                 data["projectiles"] = []
-                for p_id, s_pos, g_pos, speed in j:
+                for p_id, g_pos in j:
                     p_ids.append(p_id)
                     if p_id not in self.projectiles:
-                        data["projectiles"].append((s_pos, g_pos, speed))
+                        data["projectiles"].append(g_pos)
                 self.projectiles = p_ids
             elif i == "health":
                 data["health"] = j
