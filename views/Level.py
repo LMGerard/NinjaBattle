@@ -1,6 +1,6 @@
 import arcade as ac
 import arcade.gui as gui
-
+from utils.ScoreManager import ScoreManager
 from Player import Player
 import json
 
@@ -9,29 +9,25 @@ class Level(ac.View):
     def __init__(self, window: ac.Window, number: int):
         super().__init__(window)
         self.ui_manager = gui.UIManager(self.window)
-
+        self.players = ac.SpriteList()
         self.level_number = number
         self.gravity = 1
 
+        self.score_manager = None
         self.grounds_list = None
-
-        self.player = Player(self.window, self)
-        self.player.setup()
-        self.enemies = ac.SpriteList()
-
-        self.enemy_player = Player(self.window, self)
-        self.enemies.append(self.enemy_player)
+        self.player = None
+        self.enemy_player = None
 
     def on_draw(self):
         ac.start_render()
         self.grounds_list.draw()
         self.player.draw_all()
+        self.score_manager.draw()
         self.enemy_player.draw_all()
 
     def on_update(self, delta_time):
-        self.networking()
-        self.player.update()
-        self.enemies.update()
+        #self.networking()
+        self.players.update()
 
     def networking(self):
         try:
@@ -73,6 +69,15 @@ class Level(ac.View):
         self.player.change_x = 0
 
     def setup(self):
+        self.player = Player(self.window, self)
+        self.enemy_player = Player(self.window, self)
+        self.player.setup()
+        self.enemy_player.setup()
+
+        self.players.append(self.player)
+        self.players.append(self.enemy_player)
+
+        self.score_manager = ScoreManager(self.players)
         self.load_level_file()
 
     def load_level_file(self):
