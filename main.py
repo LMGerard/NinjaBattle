@@ -1,9 +1,9 @@
 import arcade as ac
 import socket
 from random import randrange
-from Menu import Menu
-from Level import Level
-from constants import SCREEN_TITLE, SCREEN_WIDTH, SCREEN_HEIGHT
+from views.Menu import Menu
+from views.Level import Level
+from utils.constants import SCREEN_TITLE, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 class NinjaBattle(ac.Window):
@@ -22,8 +22,8 @@ class NinjaBattle(ac.Window):
         self.x_offset = 0
         self.y_offset = 0
 
-        #self.show_game()
-        self.show_menu()
+        self.show_game()
+        #self.show_menu()
 
     def show_menu(self):
         self.show_view(Menu(self))
