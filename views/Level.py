@@ -8,36 +8,44 @@ import json
 class Level(ac.View):
     def __init__(self, window: ac.Window, number: int):
         super().__init__(window)
-        self.ui_manager = gui.UIManager(self.window)
         self.players = ac.SpriteList()
+        self.score_manager = ScoreManager(self.players, self.window)
+        self.ui_manager = gui.UIManager(self.window)
+        self.players_by_ids = {}
         self.level_number = number
         self.gravity = 1
 
-        self.score_manager = None
         self.grounds_list = None
         self.player = None
-        self.enemy_player = None
 
     def on_draw(self):
         ac.start_render()
         self.grounds_list.draw()
-        self.player.draw_all()
+        for player in self.players:
+            player.draw_all()
         self.score_manager.draw()
-        self.enemy_player.draw_all()
 
     def on_update(self, delta_time):
-        #self.networking()
+        self.networking()
         self.players.update()
 
     def networking(self):
         try:
             message, address = self.window.socket.recvfrom(1024)
             message = json.loads(message)
-            if message["msg"] == "game_data":
-                self.enemy_player.from_dict(message)
         except:
-            pass
-        data = self.player.objectify()
+            message = None
+
+        if message is not None:
+            if message["msg"] == "game_data":
+                self.players_by_ids[message["user_id"]].from_dict(message)
+            elif message["msg"] == "new_round":
+                self.player.from_dict(message)
+
+        self.network_send(self.player.objectify())
+
+    def network_send(self, data):
+        data["user_id"] = self.window.user_id
         self.window.socket.sendto(json.dumps(data).encode('utf-8'), ("127.0.0.1", 4444))
 
     def on_key_press(self, key, key_modifiers):
@@ -68,16 +76,16 @@ class Level(ac.View):
         """
         self.player.change_x = 0
 
-    def setup(self):
-        self.player = Player(self.window, self)
-        self.enemy_player = Player(self.window, self)
-        self.player.setup()
-        self.enemy_player.setup()
+    def setup(self, users_ids):
+        for user_id in users_ids:
+            player = Player(self.window, self, user_id)
+            player.setup()
 
-        self.players.append(self.player)
-        self.players.append(self.enemy_player)
+            self.players.append(player)
+            self.players_by_ids[user_id] = player
+            if user_id == self.window.user_id:
+                self.player = player
 
-        self.score_manager = ScoreManager(self.players)
         self.load_level_file()
 
     def load_level_file(self):
@@ -89,8 +97,8 @@ class Level(ac.View):
 
         self.grounds_list = ac.tilemap.process_layer(tile_map, 'ground', 1)
 
-        if tile_map.layers[0].properties is not None and "gravity" in tile_map.layers[0].properties.keys():
-            self.gravity = int(tile_map.layers[0].properties["gravity"])
+        if tile_map.properties is not None and "gravity" in tile_map.properties.keys():
+            self.gravity = int(tile_map.properties["gravity"])
 
         if tile_map.background_color:
             ac.set_background_color(tile_map.background_color)
