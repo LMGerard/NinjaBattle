@@ -1,7 +1,7 @@
 import arcade as ac
 from utils.constants import BOTTOM_VIEWPORT_MARGIN, LEFT_VIEWPORT_MARGIN, RIGHT_VIEWPORT_MARGIN, TOP_VIEWPORT_MARGIN, \
     TOOLBAR_OBJECT_SIZE
-from utils.Item import ShurikenItem, FireWorkItem
+from utils.ItemContainer import *
 
 
 class Player(ac.Sprite):
@@ -13,49 +13,55 @@ class Player(ac.Sprite):
         self.physics_engine = None
         self.ui_manager = None
 
-        self.name = self.window.user_id  # to change later
-        self.health_bar = HealthBar(self, max_health=100, health=0)
         self.score = 0
+        self.name = self.user_id  # to change later
+
+        self.health_bar = HealthBar(self, max_health=100, health=0)
+        self.items = ac.SpriteList()
         self.speed = 4
         self.jump_force = 18
+        self.can_move = True
+        self.can_attack = True
 
-        self.items = []
-        self.projectiles = ac.SpriteList()
+        self.items = ac.SpriteList()
+        self.items_containers = []
+        self.platforms = []
+
+        self.last_attacker = None
+        self.last_attackers = {}
+
+    def reset(self):
+        self.health_bar = HealthBar(self, max_health=100, health=100)
+        self.speed = 4
+        self.jump_force = 18
+        self.can_move = True
+        self.can_attack = True
+        self.last_attacker = None
+        self.last_attackers = {}
+        self.items = ac.SpriteList()
 
     def setup(self):
         # load textures
         self.textures.append(ac.load_texture("assets/player_0.png", flipped_horizontally=True))
-
-        if self.user_id != self.window.user_id:
-            return
-        self.items.append(ShurikenItem(self.window))
-        self.items.append(FireWorkItem(self.window))
+        self.set_position(400, 300)
+        if self.user_id == self.window.user_id:
+            self.items_containers.append(ShurikenContainer(self.window))
+            self.items_containers.append(FireWorkContainer(self.window))
+            self.items_containers.append(PlatformContainer(self.window))
 
     def update(self):
-        self.projectiles.update()
-        for item in self.items:
-            item.update()
+        self.items.update()
 
-        if self is not self.level.player:
-            for project in self.projectiles:
-                if ac.check_for_collision(project, self.level.player):
-                    self.level.player.health_bar.health -= project.damage
-                    self.projectiles.remove(project)
-                elif ac.check_for_collision_with_list(project, self.level.grounds_list):
-                    self.projectiles.remove(project)
-                else:
-                    for player in self.level.players:
-                        if player is not self and ac.check_for_collision(project, player):
-                            self.projectiles.remove(project)
-                            break
-        else:
-            self.physics_engine.update()
+        if self is self.level.player:
+            if self.can_move:
+                self.physics_engine.update()
 
-            for project in self.projectiles:
-                if any([player is not self for player in project.collides_with_list(self.level.players)]):
-                    self.projectiles.remove(project)
-                elif ac.check_for_collision_with_list(project, self.level.grounds_list):
-                    self.projectiles.remove(project)
+            for container in self.items_containers:
+                container.update()
+
+            if len(self.last_attackers) > 0:
+                self.last_attacker = max(self.last_attackers.keys(), key=lambda x: self.last_attackers[x])
+                self.last_attackers = {}
 
             # viewport scroll
             changed = False
@@ -90,8 +96,8 @@ class Player(ac.Sprite):
                                          self.window.height + self.window.y_offset)
 
     def draw_all(self):
-        self.projectiles.draw()
-        for index, item in enumerate(self.items):
+        self.items.draw()
+        for index, item in enumerate(self.items_containers):
             item.draw(index)
         self.health_bar.draw()
         self.draw()
@@ -115,14 +121,22 @@ class Player(ac.Sprite):
         self.update_texture()
 
     def mouse_press(self, x, y, button):
-        if button == ac.MOUSE_BUTTON_LEFT:
-            item = self.items[1].launch(self, (x, y))
+        if button == ac.MOUSE_BUTTON_LEFT and self.can_attack:
+            item = self.items_containers[1].launch(self, (x, y))
             if item is not None:
-                self.projectiles.append(item)
-        elif button == ac.MOUSE_BUTTON_RIGHT:
-            item = self.items[0].launch(self, (x, y))
+                self.items.append(item)
+        elif button == ac.MOUSE_BUTTON_RIGHT and self.can_attack:
+            item = self.items_containers[0].launch(self, (x, y))
             if item is not None:
-                self.projectiles.append(item)
+                self.items.append(item)
+        elif button == ac.MOUSE_BUTTON_MIDDLE and self.can_attack:
+            item = self.items_containers[2].launch(self, (x, y))
+            if item is not None:
+                if not item.collides_with_list(self.level.grounds_list):
+                    self.level.grounds_list.append(item)
+                    self.items.append(item)
+                else:
+                    self.items_containers[2].reset_countdown()
 
     def update_texture(self):
         if self.change_x < 0:
@@ -145,13 +159,18 @@ class Player(ac.Sprite):
         if "texture" in keys and self.cur_texture_index != data["texture"]:
             self.cur_texture_index = data["texture"]
             self.set_texture(self.cur_texture_index)
-        if "projectiles" in keys:
-            for p_type, p_pos in data["projectiles"]:
+        if "score" in keys:
+            self.score = data["score"]
+        if "items" in keys:
+            for p_type, p_pos in data["items"]:
                 if p_type == "shuriken":
-                    projectile = ShurikenItem.force_launch(self, p_pos)
+                    item = ShurikenContainer.force_launch(self, p_pos)
                 elif p_type == "firework":
-                    projectile = FireWorkItem.force_launch(self, p_pos)
-                self.projectiles.append(projectile)
+                    item = FireWorkContainer.force_launch(self, p_pos)
+                elif p_type == "platform":
+                    item = PlatformContainer.force_launch(self, p_pos)
+                    self.level.grounds_list.append(item)
+                self.items.append(item)
 
     def objectify(self) -> dict:
         """
@@ -163,7 +182,8 @@ class Player(ac.Sprite):
                 "position": self.position,
                 "health": self.health_bar.health,
                 "texture": self.cur_texture_index,
-                "projectiles": [(project.id, project.type, project.goal_pos) for project in self.projectiles]}
+                "last_attacker": self.last_attacker,
+                "items": [(item.id, item.type, item.goal_pos) for item in self.items]}
 
 
 class HealthBar:
@@ -172,18 +192,32 @@ class HealthBar:
 
         self.max_health = max_health
         self.health = health
+        self.health = 100
+        self.last_health = None
+
+        self.health_bar_complete = ac.load_texture("assets/health_bar_complete.png")
+        self.health_bar_black = ac.load_texture("assets/health_bar_black.png")
+        self.health_bar_red = None
 
     def draw(self):
         if self.player is self.player.level.player:
-            width, height = self.player.window.width / 4, TOOLBAR_OBJECT_SIZE * 2 / 3
-            x, y = self.player.window.x_offset + 10 + width / 2, self.player.window.y_offset + 10 + height / 2
+            x, y = self.player.window.x_offset, self.player.window.y_offset
+            self.health_bar_complete.draw_scaled(center_x=x + self.health_bar_complete.width / 2,
+                                                 center_y=y + self.health_bar_complete.height / 2, scale=1)
+
+            if self.last_health != self.health:
+                new_width = self.health * 291 / self.max_health
+                self.health_bar_red = ac.load_texture("assets/health_bar_red.png", x=0, y=0, height=27, width=new_width)
+                self.last_health = self.health
+
+            self.health_bar_red.draw_transformed(left=x + 75, bottom=y + 59,
+                                                 width=self.health_bar_red.width, height=self.health_bar_red.height)
         else:
             width, height = self.player.width, self.player.height // 5
             x, y = self.player.center_x, self.player.top + height * 2
-            # red rectangle
-        ac.draw_rectangle_filled(x, y, width, height, (255, 0, 0))
-        new_width = self.health * width / self.max_health
-        # green rectangle
-        ac.draw_rectangle_filled(x - (width - new_width) / 2, y, new_width, height, (0, 255, 0))
-        # outline
-        ac.draw_rectangle_outline(x, y, width, height, (0, 0, 0))
+
+            ac.draw_rectangle_filled(center_x=x, center_y=y, width=width, height=height, color=(22, 0, 0))
+
+            n_width = self.health * width / 100
+            ac.draw_rectangle_filled(center_x=x - width / 2 + n_width / 2, center_y=y,
+                                     width=n_width, height=height, color=(203, 0, 2))

@@ -4,17 +4,21 @@ from random import randrange
 
 
 class Player:
-    def __init__(self, user_id, address, position, projectiles: list):
-        self.user_id = user_id
+    def __init__(self, user_id, address, position, items: list):
         self.game_id = None
+        self.user_id = user_id
         self.address = address
+
+        self.spawn_position = None
         self.position = position
-        self.projectiles = projectiles
+        self.items = items
+        self.last_attacker = None
         self.texture = 0
         self.score = 0
+        self.health = 100
 
     def update(self, message) -> dict:
-        data = {"msg": "game_data", "user_id": self.user_id}
+        data = {"msg": "game_data", "user_id": self.user_id, "score": self.score}
         for i, j in message.items():
             if i == "position":
                 self.position = j
@@ -22,17 +26,28 @@ class Player:
             elif i == "texture":
                 self.texture = j
                 data["texture"] = j
-            elif i == "projectiles":
+            elif i == "last_attacker":
+                self.last_attacker = j
+            elif i == "items":
                 p_ids = []
-                data["projectiles"] = []
+                data["items"] = []
                 for p_id, p_type, p_pos in j:
                     p_ids.append(p_id)
-                    if p_id not in self.projectiles:
-                        data["projectiles"].append((p_type, p_pos))
-                self.projectiles = p_ids
+                    if p_id not in self.items:
+                        data["items"].append((p_type, p_pos))
+                self.items = p_ids
             elif i == "health":
                 data["health"] = j
+                self.health = j
         return data
+
+    def send(self, encoded_data):
+        """
+        Send to address given data, data are received encoded to avoid any encode repetition
+        :param encoded_data:
+        :return:
+        """
+        server.socket.sendto(encoded_data, self.address)
 
 
 class Server:
@@ -55,36 +70,53 @@ class Server:
 
                 if len(self.queue) == 2:
                     self.start_game()
-                    self.start_new_round(self.users[message["user_id"]].game_id)
 
             elif message["msg"] == "game_data":
                 user = self.users[message["user_id"]]
                 data = user.update(message)
-                if data["health"] <= 0:
-                    self.start_new_round(user.game_id)
+                if user.health <= 0:
+                    if user.last_attacker is not None:
+                        self.users[user.last_attacker].score += 1
+
+                        if self.users[user.last_attacker].score > 3:
+                            self.end_game(self.users[user.last_attacker].game_id)
+
+                    self.spawn(user)
                 else:
                     users = list(
                         filter(lambda x: x != user.user_id, self.games[user.game_id]))
-
+                    data = json.dumps(data).encode()
                     for user in users:
-                        self.socket.sendto(json.dumps(data).encode(), self.users[user].address)
+                        self.users[user].send(data)
 
     def start_game(self):
         game = randrange(10000000)
+        spawn_positions = [(400, 100), (700, 100)]
+
         users = self.queue.pop(0), self.queue.pop(0)
         self.games[game] = users
         data = {"msg": "start", "players": users}
-        for user_id in users:
-            self.users[user_id].game_id = game
-            self.socket.sendto(json.dumps(data).encode(), self.users[user_id].address)
+        data = json.dumps(data).encode()
 
-    def start_new_round(self, game_id: int):
-        coords = [(400, 100), (700, 100)]
-        data = {"msg": "new_round", "health": 100, "texture": 0}
-        for user in self.games[game_id]:
-            data["position"] = coords.pop()
-            self.socket.sendto(json.dumps(data).encode(), self.users[user].address)
+        for user_id in users:
+            user = self.users[user_id]
+
+            user.spawn_position = spawn_positions.pop()
+            user.game_id = game
+            user.send(data)
+            self.spawn(user)
+
+    def spawn(self, user: Player):
+        data = {"msg": "spawn", "position": user.spawn_position}
+        user.send(json.dumps(data).encode())
+
+    def end_game(self, game_id: int):
+        users = self.games[game_id]
+        data = json.dumps({"msg": "end"}).encode()
+        for user in users:
+            self.users[user].send(data)
 
 
 if __name__ == '__main__':
-    Server().start()
+    server = Server()
+    server.start()

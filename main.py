@@ -4,11 +4,13 @@ from random import randrange
 from views.Menu import Menu
 from views.Level import Level
 from utils.constants import SCREEN_TITLE, SCREEN_WIDTH, SCREEN_HEIGHT
+import sys
+import os
 
 
 class NinjaBattle(ac.Window):
     def __init__(self, width, height, title):
-        super().__init__(width, height, title)
+        super().__init__(width, height, title, resizable=True)
 
         self.user_id = randrange(100000000)
 
@@ -22,7 +24,7 @@ class NinjaBattle(ac.Window):
         self.x_offset = 0
         self.y_offset = 0
 
-        # self.show_game()
+        #self.show_game([self.user_id])
         self.show_menu()
 
     def show_menu(self):
@@ -42,6 +44,10 @@ def main():
     NinjaBattle(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
     ac.run()
 
+
+# pyinstaller requirement
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS)
 
 if __name__ == "__main__":
     main()

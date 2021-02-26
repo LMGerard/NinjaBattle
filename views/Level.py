@@ -15,6 +15,9 @@ class Level(ac.View):
         self.level_number = number
         self.gravity = 1
 
+        self.window.set_mouse_cursor(self.window.get_system_mouse_cursor(self.window.CURSOR_CROSSHAIR))
+
+        self.items_to_update = ac.SpriteList()
         self.grounds_list = None
         self.player = None
 
@@ -28,6 +31,8 @@ class Level(ac.View):
     def on_update(self, delta_time):
         self.networking()
         self.players.update()
+        self.grounds_list.update()
+        self.items_to_update.update()
 
     def networking(self):
         try:
@@ -39,8 +44,11 @@ class Level(ac.View):
         if message is not None:
             if message["msg"] == "game_data":
                 self.players_by_ids[message["user_id"]].from_dict(message)
-            elif message["msg"] == "new_round":
+            elif message["msg"] == "spawn":
+                self.player.reset()
                 self.player.from_dict(message)
+            elif message["msg"] == "end":
+                self.end_game()
 
         self.network_send(self.player.objectify())
 
@@ -75,6 +83,9 @@ class Level(ac.View):
         Function called by main.py when the window is deactivated
         """
         self.player.change_x = 0
+
+    def end_game(self):
+        self.score_manager.end_screen = True
 
     def setup(self, users_ids):
         for user_id in users_ids:
