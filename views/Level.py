@@ -54,7 +54,7 @@ class Level(ac.View):
 
     def network_send(self, data):
         data["user_id"] = self.window.user_id
-        self.window.socket.sendto(json.dumps(data).encode('utf-8'), ("127.0.0.1", 4444))
+        self.window.socket.sendto(json.dumps(data).encode('utf-8'), self.window.address)
 
     def on_key_press(self, key, key_modifiers):
         self.player.key_press(key)
@@ -114,4 +114,5 @@ class Level(ac.View):
         if tile_map.background_color:
             ac.set_background_color(tile_map.background_color)
 
-        self.player.physics_engine = ac.PhysicsEnginePlatformer(self.player, self.grounds_list, self.gravity)
+        for player in self.players:
+            player.physics_engine = ac.PhysicsEnginePlatformer(player, self.grounds_list, self.gravity)

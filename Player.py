@@ -1,6 +1,4 @@
-import arcade as ac
-from utils.constants import BOTTOM_VIEWPORT_MARGIN, LEFT_VIEWPORT_MARGIN, RIGHT_VIEWPORT_MARGIN, TOP_VIEWPORT_MARGIN, \
-    TOOLBAR_OBJECT_SIZE
+from utils.constants import BOTTOM_VIEWPORT_MARGIN, LEFT_VIEWPORT_MARGIN, RIGHT_VIEWPORT_MARGIN, TOP_VIEWPORT_MARGIN
 from utils.ItemContainer import *
 
 
@@ -51,11 +49,10 @@ class Player(ac.Sprite):
 
     def update(self):
         self.items.update()
+        if self.can_move:
+            self.physics_engine.update()
 
         if self is self.level.player:
-            if self.can_move:
-                self.physics_engine.update()
-
             for container in self.items_containers:
                 container.update()
 
@@ -154,7 +151,7 @@ class Player(ac.Sprite):
         keys = data.keys()
         if "health" in keys:
             self.health_bar.health = data["health"]
-        if "position" in keys:
+        if "position" in keys and False:
             self.position = data["position"]
         if "texture" in keys and self.cur_texture_index != data["texture"]:
             self.cur_texture_index = data["texture"]
@@ -171,6 +168,9 @@ class Player(ac.Sprite):
                     item = PlatformContainer.force_launch(self, p_pos)
                     self.level.grounds_list.append(item)
                 self.items.append(item)
+        if "change" in keys:
+            pass
+            #self.change_x, self.change_y = data["change"]
 
     def objectify(self) -> dict:
         """
@@ -183,6 +183,7 @@ class Player(ac.Sprite):
                 "health": self.health_bar.health,
                 "texture": self.cur_texture_index,
                 "last_attacker": self.last_attacker,
+                "change": (self.change_x, self.change_y),
                 "items": [(item.id, item.type, item.goal_pos) for item in self.items]}
 
 

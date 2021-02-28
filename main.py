@@ -7,6 +7,9 @@ from utils.constants import SCREEN_TITLE, SCREEN_WIDTH, SCREEN_HEIGHT
 import sys
 import os
 
+IP = "127.0.0.1"  # "45.145.167.107"  # "127.0.0.1"
+PORT = 4445  # 4444
+
 
 class NinjaBattle(ac.Window):
     def __init__(self, width, height, title):
@@ -15,16 +18,17 @@ class NinjaBattle(ac.Window):
         self.user_id = randrange(100000000)
 
         # connect to server
+        self.address = (IP, PORT)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1)
 
-        self.socket.connect(("127.0.0.1", 4444))
+        self.socket.connect(self.address)
         self.socket.setblocking(False)
 
         self.x_offset = 0
         self.y_offset = 0
 
-        #self.show_game([self.user_id])
+        # self.show_game([self.user_id])
         self.show_menu()
 
     def show_menu(self):

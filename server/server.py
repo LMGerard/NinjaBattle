@@ -2,6 +2,9 @@ import socket
 import json
 from random import randrange
 
+IP = "0.0.0.0"
+PORT = 4445
+
 
 class Player:
     def __init__(self, user_id, address, position, items: list):
@@ -16,6 +19,7 @@ class Player:
         self.texture = 0
         self.score = 0
         self.health = 100
+        self.change = (0, 0)
 
     def update(self, message) -> dict:
         data = {"msg": "game_data", "user_id": self.user_id, "score": self.score}
@@ -39,6 +43,9 @@ class Player:
             elif i == "health":
                 data["health"] = j
                 self.health = j
+            elif i == "change":
+                data["change"] = j
+                self.change = j
         return data
 
     def send(self, encoded_data):
@@ -59,11 +66,14 @@ class Server:
         self.queue = []
 
     def start(self):
-        self.socket.bind(("127.0.0.1", 4444))
+
+        self.socket.bind((IP, PORT))
+        print("Server started.")
 
         while True:
             message, address = self.socket.recvfrom(1024)
             message = json.loads(message)
+
             if message["msg"] == "play":
                 self.queue.append(message["user_id"])
                 self.users[message["user_id"]] = Player(message["user_id"], address, (100, 100), [])
@@ -119,4 +129,10 @@ class Server:
 
 if __name__ == '__main__':
     server = Server()
-    server.start()
+
+    try:
+        server.start()
+    except KeyboardInterrupt:
+        print("Server stopped.")
+        server.socket.close()
+        print("Socket closed")

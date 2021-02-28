@@ -24,7 +24,7 @@ class Menu(ac.View):
 
     def join_game(self):
         data = {"user_id": self.window.user_id, "msg": "play"}
-        self.window.socket.sendto(json.dumps(data).encode('utf-8'), ("127.0.0.1", 4444))
+        self.window.socket.sendto(json.dumps(data).encode('utf-8'), self.window.address)
 
     def on_show_view(self):
         self.ui_manager.add_ui_element(PlayButton(self))

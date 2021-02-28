@@ -1,5 +1,3 @@
-import arcade as ac
-from time import time
 from utils.Item import *
 from utils.constants import TOOLBAR_OBJECT_SIZE
 import math
